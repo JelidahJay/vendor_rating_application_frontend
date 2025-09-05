@@ -126,3 +126,18 @@ export const getPendingSurveys = async () => {
     return res.data;
 };
 
+export async function getVendorSummary(vendorId, params = {}) {
+    return api.get(`/reports/vendor/${vendorId}/summary`, { params });
+}
+
+export async function getVendorTrend(vendorId, params = {}) {
+    return api.get(`/reports/vendor/${vendorId}/trend`, { params });
+}
+
+export async function getComparative(params = {}) {
+    return api.get(`/reports/comparative`, { params });
+}
+
+export async function getRiskWatch(params = {}) {
+    return api.get(`/reports/risk-watch`, { params });
+}

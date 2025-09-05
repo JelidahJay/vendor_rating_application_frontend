@@ -38,6 +38,7 @@ export default function SurveyScreen() {
     const fetchVendors = async () => {
         try {
             const data = await getVendors();
+            console.log('The vendors we have so far ',data);
             setVendors(data);
         } catch (error) {
             console.error('Error fetching vendors:', error);
@@ -63,69 +64,106 @@ export default function SurveyScreen() {
     };
 
     const handleFormChange = (field, value) => {
-        setFormData((prev) => ({
+        setFormData(prev => ({
             ...prev,
-            [field]: field === 'user_ids' ? ([]).concat(value) : value
+            [field]: field === 'user_ids'
+                ? (Array.isArray(value) ? value : [value])
+                : value
         }));
     };
 
+    const [submitting, setSubmitting] = useState(false);
+
     const handleAssign = async () => {
-        console.log("handleAssign triggered");
+        // ---- basic validation ----
+        if (!formData.vendor_id) {
+            Platform.OS === 'web' ? window.alert('Please select a vendor.') : Alert.alert('Validation', 'Please select a vendor.');
+            return;
+        }
+        if (!formData.user_ids || formData.user_ids.length === 0) {
+            Platform.OS === 'web' ? window.alert('Please select at least one user.') : Alert.alert('Validation', 'Please select at least one user.');
+            return;
+        }
 
         const payload = {
-            vendor_id: parseInt(formData.vendor_id),
-            user_ids: formData.user_ids.map((id) => parseInt(id)),
+            vendor_id: parseInt(String(formData.vendor_id), 10),
+            user_ids: (formData.user_ids || []).map(id => parseInt(String(id), 10)),
             invited_by_user_id: formData.invited_by_user_id,
-            valid_days: parseInt(formData.valid_days)
+            valid_days: parseInt(String(formData.valid_days), 10),
         };
 
+        // build user names (handle string/number mismatch)
+        const selectedUserIdSet = new Set((formData.user_ids || []).map(x => String(x)));
         const userNames = raters
-            .filter((r) => formData.user_ids.includes(r.user_id))
-            .map((r) => r.full_name)
+            .filter(r => selectedUserIdSet.has(String(r.user_id)))
+            .map(r => r.full_name)
             .join(', ');
 
-        const vendorName = vendors.find((v) => v.vendor_id == formData.vendor_id)?.name || 'Selected Vendor';
-        const confirmMessage = `Assign ${vendorName} survey to:\n${userNames}\nValid for ${formData.valid_days} days?`;
+        // show vendor name + service in confirm
+        const vendorOptions = vendors.map(v => ({
+            value: String(v.vendor_id),
+            label: v.name,
+            subLabel: v.product_service || '',
+        }));
+        const selectedVendor = vendorOptions.find(o => String(o.value) === String(formData.vendor_id));
+        const vendorDisplay = selectedVendor ? `${selectedVendor.label} — ${selectedVendor.subLabel}` : 'Selected Vendor';
 
+        const confirmMessage = `Assign ${vendorDisplay} survey to:\n${userNames}\nValid for ${formData.valid_days} days?`;
         const confirmed = Platform.OS === 'web' ? window.confirm(confirmMessage) : true;
+        if (!confirmed) return;
 
-        if (confirmed) {
-            try {
-                console.log("📤 Payload to be sent:", payload);
-                await assignMultipleSurveys(payload);
-                setModalVisible(false);
-                console.log("✅ Surveys assigned successfully.");
-                fetchGroupedSurveyData();
-                fetchPending();
-            } catch (error) {
-                console.error('❌ Error assigning surveys:', error);
-                if (Platform.OS === 'web') {
-                    window.alert('Failed to assign surveys.');
-                } else {
-                    Alert.alert('Error', 'Failed to assign surveys.');
-                }
-            }
+        try {
+            setSubmitting(true);
+            console.log('📤 Payload to be sent:', payload);
+            await assignMultipleSurveys(payload);
+
+            // ✅ reset form & close modal
+            setFormData({ vendor_id: '', user_ids: [], invited_by_user_id: 1, valid_days: '7' });
+            setModalVisible(false);
+
+            // refresh lists
+            await Promise.all([fetchGroupedSurveyData(), fetchPending()]);
+
+            Platform.OS === 'web' ? window.alert('Surveys assigned successfully.') : Alert.alert('Success', 'Surveys assigned successfully.');
+        } catch (error) {
+            console.error('❌ Error assigning surveys:', error);
+            Platform.OS === 'web' ? window.alert('Failed to assign surveys.') : Alert.alert('Error', 'Failed to assign surveys.');
+        } finally {
+            setSubmitting(false);
         }
     };
 
+    // build options with name + service
+    const vendorOptions = vendors.map(v => ({
+        value: String(v.vendor_id),
+        label: v.name,                        // main line
+        subLabel: v.product_service || '',    // second line
+        searchKey: `${v.name} ${v.product_service || ''}`.toLowerCase(), // for search
+    }));
+
+    const userOptions   = raters.map(u => ({ label: u.full_name, value: String(u.user_id) }));
 
     const surveyFields = [
         {
             name: 'vendor_id',
             label: 'Select Vendor',
-            type: 'select',
-            options: vendors.map((v) => ({ label: v.name, value: v.vendor_id }))
+            type: 'searchable-select',
+            options: vendorOptions,
+            searchPlaceholder: 'Search vendors (name or service)…',
         },
         {
             name: 'user_ids',
             label: 'Select Users',
-            type: 'select',
-            options: raters.map((u) => ({ label: u.full_name, value: u.user_id }))
+            type: 'searchable-select',
+            options: userOptions,
+            isMulti: true,
+            searchPlaceholder: 'Search users',
         },
         {
             name: 'valid_days',
             label: 'Valid For (Days)',
-            placeholder: '7'
+            type: 'input',
+            placeholder: '7',
         }
     ];
 

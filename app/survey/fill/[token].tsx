@@ -67,20 +67,47 @@ export default function SurveyFillScreen() {
     };
 
     useEffect(() => {
-        if (survey) {
-            const supplierQuestion = survey.survey_questions.find(q =>
-                q.question_text.toLowerCase().includes("supplier") ||
-                q.question_text.toLowerCase().includes("company name")
-            );
+        if (!survey) return;
 
-            if (supplierQuestion) {
-                setAnswers((prev) => ({
-                    ...prev,
-                    [supplierQuestion.question_id]: survey.vendor_name
-                }));
+        const lc = (s) => (s || '').toString().toLowerCase();
+
+        // Q1: Supplier/Company Name
+        const qSupplier = survey.survey_questions.find(q =>
+            lc(q.question_text).includes('supplier') ||
+            lc(q.question_text).includes('company name')
+        );
+
+        // Q2: Product/Service being evaluated
+        const qService = survey.survey_questions.find(q =>
+            lc(q.question_text).includes('product/service being evaluated') ||
+            lc(q.question_text).includes('product / service being evaluated') || // just in case of spacing
+            lc(q.question_text).includes('product') && lc(q.question_text).includes('service')
+        );
+
+        // Prefer the new field; fallback in case older payloads use different names
+        const serviceValue =
+            survey.vendor_service ??
+            survey.product_service ??
+            survey.vendor_product_service ??
+            survey.vendor?.product_service ??
+            '';
+
+        setAnswers((prev) => {
+            const next = { ...prev };
+            // @ts-ignore
+            if (qSupplier && next[qSupplier.question_id] == null) {
+                // @ts-ignore
+                next[qSupplier.question_id] = survey.vendor_name || '';
             }
-        }
+            // @ts-ignore
+            if (qService && next[qService.question_id] == null) {
+                // @ts-ignore
+                next[qService.question_id] = serviceValue;
+            }
+            return next;
+        });
     }, [survey]);
+
 
     if (loading) {
         return (

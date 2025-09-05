@@ -94,6 +94,7 @@ export default function SurveyFillScreen() {
                 {/* Rater and Vendor Information */}
                 <Text style={styles.infoText}>Rater: {survey.rater_name} ({survey.rater_email})</Text>
                 <Text style={styles.infoText}>Vendor: {survey.vendor_name}</Text>
+                <Text style={styles.infoText}>Service Provided: {survey.vendor_service}</Text>
 
                 {/* Survey Questions */}
                 {survey.survey_questions.map((q) => (

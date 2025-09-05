@@ -31,6 +31,12 @@ export default function SideNav() {
                 path="/departments"
                 currentPath={pathname}
             />
+            <NavItem
+                icon={<Feather name="layers" size={18} color="#cde0df" />}
+                label="Reports"
+                path="/reports"
+                currentPath={pathname}
+            />
         </View>
     );
 }
