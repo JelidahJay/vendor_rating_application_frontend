@@ -116,7 +116,7 @@ export default function CustomModalForm({
 
             {field.type === 'searchable-select' && renderSearchableSelect(field)}
 
-            {field.type === 'input' && (
+            {(!field.type || field.type === 'input') && (
                 <TextInput
                     placeholder={field.placeholder}
                     value={formData[field.name]}
@@ -182,16 +182,20 @@ const styles = StyleSheet.create({
         borderRadius: 12, overflow: 'hidden',
     },
     modalHeader: {
-        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        backgroundColor: '#1F8789', padding: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: UIColors.header,   // deep indigo header
+        padding: 15,
     },
+
     modalTitle: { fontSize: 18, fontWeight: 'bold', color: UIColors.textLight },
     closeButton: { fontSize: 24, fontWeight: 'bold', color: UIColors.textLight },
     modalBody: { padding: 20 },
     inputContainer: { marginBottom: 15 },
 
     pickerWrapper: {
-        borderBottomWidth: 1, borderColor: '#aaa',
+        borderBottomWidth: 1, borderColor: UIColors.border,
         backgroundColor: 'transparent', paddingVertical: 5,
     },
     picker: {
@@ -200,20 +204,20 @@ const styles = StyleSheet.create({
     },
 
     input: {
-        borderBottomWidth: 1, borderBottomColor: '#aaa', paddingVertical: 8,
+        borderBottomWidth: 1, borderBottomColor: UIColors.border, paddingVertical: 8,
         fontSize: 14, backgroundColor: 'transparent', color: UIColors.textPrimary,
         outlineStyle: 'none',
     },
 
     // Searchable select styles
     searchInput: {
-        borderWidth: 1, borderColor: '#aaa', borderRadius: 8,
+        borderWidth: 1, borderColor: UIColors.border, borderRadius: 8,
         paddingVertical: Platform.OS === 'web' ? 8 : 6, paddingHorizontal: 10,
         fontSize: 14, color: UIColors.textPrimary, marginBottom: 8,
         backgroundColor: 'transparent',
     },
     listBox: {
-        borderWidth: 1, borderColor: '#eee', borderRadius: 8,
+        borderWidth: 1, borderColor: UIColors.border, borderRadius: 8,
         overflow: 'hidden',
     },
     optionRow: {
@@ -221,19 +225,30 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1, borderBottomColor: '#f2f2f2',
     },
     optionRowSelected: {
-        backgroundColor: '#e7f7f7',
+        backgroundColor: UIColors.primarySoft,   // soft lavender tint
+        borderLeftWidth: 3,
+        borderLeftColor: UIColors.primarySoftBorder,
     },
+
     selectionHint: {
         marginTop: 6, fontSize: 12, color: UIColors.textSecondary,
     },
 
     modalFooter: {
         flexDirection: 'row', justifyContent: 'space-between',
-        padding: 15, borderTopWidth: 1, borderColor: '#ccc',
+        padding: 15, borderTopWidth: 1, borderColor: UIColors.border,
     },
-    button: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 6 },
-    cancelButton: { backgroundColor: 'gray' },
-    submitButton: { backgroundColor: UIColors.accent },
-    buttonText: { color: UIColors.textLight, fontWeight: 'bold' },
+    button: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+
+    cancelButton: {
+        backgroundColor: UIColors.danger,
+    },
+
+    submitButton: {
+        backgroundColor: UIColors.primary,
+    },
+
+    buttonText: { color: UIColors.textLight, fontWeight: '600' },
+
     label: { fontSize: 15, fontWeight: 'bold', color: UIColors.textPrimary, marginBottom: 4 },
 });

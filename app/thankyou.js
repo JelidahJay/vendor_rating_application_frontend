@@ -1,15 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
+import UIColors from '@/constants/UIColors';
 
 export default function ThankYouScreen() {
-    const router = useRouter();
-
     return (
         <View style={styles.container}>
             <Text style={styles.title}>🎉 Thank You!</Text>
             <Text style={styles.message}>Your survey has been submitted successfully.</Text>
-            <Button title="Go Home" onPress={() => router.push('/')} />
         </View>
     );
 }
@@ -19,17 +16,20 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
-        backgroundColor: '#f2f2f2',
+        padding: 24,
+        backgroundColor: UIColors.background,
     },
     title: {
         fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 20,
+        fontWeight: '800',
+        color: UIColors.header,
+        marginBottom: 12,
+        textAlign: 'center',
     },
     message: {
-        fontSize: 18,
+        fontSize: 16,
+        color: UIColors.textSecondary,
         textAlign: 'center',
-        marginBottom: 40,
+        maxWidth: 420,
     },
 });

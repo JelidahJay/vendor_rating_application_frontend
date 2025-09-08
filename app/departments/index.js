@@ -3,6 +3,7 @@ import {View, Text, FlatList, StyleSheet, Alert, TouchableOpacity, Platform} fro
 import { getDepartments, createDepartment, updateDepartment, deleteDepartment } from '../../services/api';
 import CustomModalForm from '../../components/CustomModalForm';
 import UIColors from '../../constants/UIColors';
+import {ActionGroup, DeleteButton, EditButton, ViewButton} from "../../components/ActionButtons";
 
 export default function DepartmentScreen() {
     const [departments, setDepartments] = useState([]);
@@ -131,19 +132,27 @@ export default function DepartmentScreen() {
             <FlatList
                 data={departments}
                 keyExtractor={(item) => item.department_id.toString()}
-                renderItem={({ item, index }) => (
-                    <View style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9' }]}>
-                        <Text style={styles.cell}>{item.name}</Text>
-                        <View style={styles.actionButtons}>
-                            <TouchableOpacity onPress={() => openEditModal(item)}>
-                                <Text style={styles.editButton}>✏️</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => handleDelete(item.department_id)}>
-                                <Text style={styles.deleteButton}>🗑️</Text>
-                            </TouchableOpacity>
+                renderItem={({ item, index }) => {
+                    const isLast = index === departments.length - 1;
+                    return (
+                        <View
+                            style={[
+                                styles.tableRow,
+                                isLast && styles.tableRowLast,
+                                { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9' }
+                            ]}
+                        >
+                            <Text style={styles.cell}>{item.name}</Text>
+                            <View style={styles.actionButtons}>
+                                <ActionGroup>
+                                    <ViewButton onPress={() => {/* open view */}} />
+                                    <EditButton onPress={() => openEditModal(item)} />
+                                    <DeleteButton onPress={() => handleDelete(item.department_id)} />
+                                </ActionGroup>
+                            </View>
                         </View>
-                    </View>
-                )}
+                    );
+                }}
             />
 
             <CustomModalForm
@@ -166,6 +175,7 @@ const styles = StyleSheet.create({
         width: '100%',
         alignSelf: 'center',
         backgroundColor: UIColors.background,
+        marginLeft: 35,
     },
     headerRow: {
         flexDirection: 'row',
@@ -177,15 +187,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: UIColors.header,
-    },
-    tableHeader: {
-        flexDirection: 'row',
-        backgroundColor: UIColors.header,
-        paddingVertical: 6,
-        paddingHorizontal: 5,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: '#ddd',
     },
     headerCellLeft: {
         flex: 1,
@@ -202,15 +203,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         paddingRight: 10,
         color: UIColors.textLight,
-    },
-    tableRow: {
-        flexDirection: 'row',
-        paddingVertical: 8,
-        paddingHorizontal: 5,
-        borderBottomWidth: 1,
-        borderColor: '#eee',
-        alignItems: 'center',
-        backgroundColor: UIColors.textLight,
     },
     cell: {
         flex: 1,
@@ -244,4 +236,27 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 8,
     },
+    tableHeader: {
+        flexDirection: 'row',
+        backgroundColor: UIColors.header,
+        paddingVertical: 6,
+        paddingHorizontal: 5,
+        borderTopLeftRadius: 6,   // ⬅ top corners
+        borderTopRightRadius: 6,
+    },
+    tableRow: {
+        flexDirection: 'row',
+        paddingVertical: 8,
+        paddingHorizontal: 5,
+        borderBottomWidth: 1,
+        borderColor: '#eee',
+        alignItems: 'center',
+        backgroundColor: UIColors.textLight,
+    },
+    tableRowLast: {
+        borderBottomWidth: 0,      // remove bottom divider
+        borderBottomLeftRadius: 6, // ⬅ bottom corners
+        borderBottomRightRadius: 6,
+    },
+
 });

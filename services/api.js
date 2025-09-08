@@ -82,7 +82,6 @@ export const deleteDepartment = async (id) => {
 // Users Endpoints
 export const getUsers = async () => {
     const res = await api.get('/user');
-    console.log("uuuuuuuuuuusssseeeeerrrrrrr",res.data);
     return res.data;
 };
 

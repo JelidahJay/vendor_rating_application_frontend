@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import {View, Text, Button, FlatList, StyleSheet, Alert, TouchableOpacity, Platform} from 'react-native';
+import {View, Text, Button, FlatList, StyleSheet, Alert, TouchableOpacity, Platform, TextInput} from 'react-native';
 import {getVendors, createVendor, updateVendor, deleteVendor, getVendorSurveyDetails} from "../../services/api"
 import CustomModalForm from "../../components/CustomModalForm";
 import { useRouter } from 'expo-router';
 import VendorSurveyDetailsModal from "../../components/VendorSurveyDetailsModal";
 import UIColors from "../../constants/UIColors";
+import {Feather} from "@expo/vector-icons";
 
 export default function VendorScreen() {
     const [vendors, setVendors] = useState([]);
@@ -28,6 +29,8 @@ export default function VendorScreen() {
         }
     };
 
+    const [nameQuery, setNameQuery] = useState('');
+    const [serviceQuery, setServiceQuery] = useState('');
 
     useEffect(() => {
         fetchVendors();
@@ -133,10 +136,55 @@ export default function VendorScreen() {
         }
     };
 
+// in VendorScreen
     const vendorFields = [
-        { name: 'name', label: 'Vendor Name', placeholder: 'Enter vendor name' },
-        { name: 'product_service', label: 'Product/Service', placeholder: 'Enter product/service' },
+        { name: 'name', label: 'Vendor Name', placeholder: 'Enter vendor name', type: 'input' },
+        { name: 'product_service', label: 'Product/Service', placeholder: 'Enter product/service', type: 'input' },
     ];
+
+    function MiniButton({ label, iconName, tint, onPress }) {
+        return (
+            <TouchableOpacity onPress={onPress} style={[miniStyles.btn, { borderColor: tint }]}>
+                <Feather name={iconName} size={14} color={tint} />
+                {!!label && <Text style={[miniStyles.text, { color: tint }]}>{label}</Text>}
+            </TouchableOpacity>
+        );
+    }
+
+    const miniStyles = StyleSheet.create({
+        btn: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingVertical: 4,
+            paddingHorizontal: 8,
+            borderWidth: 1,
+            borderRadius: 6,
+            backgroundColor: 'transparent',
+        },
+        text: {
+            fontSize: 12,
+            fontWeight: '500', // not bold
+        },
+    });
+
+    const filteredVendors = React.useMemo(() => {
+        const n = (nameQuery || '').toLowerCase().trim();
+        const s = (serviceQuery || '').toLowerCase().trim();
+
+        if (!Array.isArray(vendors)) return [];
+
+        return vendors.filter(v => {
+            const name = (v?.name || '').toLowerCase();
+            const svc  = (v?.product_service || '').toLowerCase();
+
+            // match if each non-empty query is contained anywhere (start, middle, end)
+            const nameOk = n ? name.includes(n) : true;
+            const svcOk  = s ? svc.includes(s) : true;
+
+            return nameOk && svcOk;
+        });
+    }, [vendors, nameQuery, serviceQuery]);
 
     return (
         <View style={styles.container}>
@@ -147,39 +195,77 @@ export default function VendorScreen() {
                 </TouchableOpacity>
             </View>
 
+            {/* Filters */}
+            <View style={styles.filterRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.filterLabel}>Filter by Name</Text>
+                    <View style={styles.filterInputWrap}>
+                        <Feather name="search" size={14} color={UIColors.textSecondary} />
+                        <TextInput
+                            placeholder="Type a name (e.g. nem)"
+                            placeholderTextColor={UIColors.textSecondary}
+                            value={nameQuery}
+                            onChangeText={setNameQuery}
+                            style={styles.filterInput}
+                        />
+                        {!!nameQuery && (
+                            <TouchableOpacity onPress={() => setNameQuery('')}>
+                                <Feather name="x" size={14} color={UIColors.textSecondary} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                <View style={{ width: 12 }} />
+
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.filterLabel}>Filter by Product/Service</Text>
+                    <View style={styles.filterInputWrap}>
+                        <Feather name="search" size={14} color={UIColors.textSecondary} />
+                        <TextInput
+                            placeholder="Type a service (e.g. chem)"
+                            placeholderTextColor={UIColors.textSecondary}
+                            value={serviceQuery}
+                            onChangeText={setServiceQuery}
+                            style={styles.filterInput}
+                        />
+                        {!!serviceQuery && (
+                            <TouchableOpacity onPress={() => setServiceQuery('')}>
+                                <Feather name="x" size={14} color={UIColors.textSecondary} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+            </View>
             <View style={styles.tableHeader}>
                 <Text style={styles.headerCellLeft}>Vendor Name</Text>
                 <Text style={styles.headerCellLeft}>Product/Service</Text>
                 <Text style={styles.headerCellRight}>Actions</Text>
             </View>
 
-
             <FlatList
-                data={vendors}
+                data={filteredVendors}
                 keyExtractor={(item) => item.vendor_id.toString()}
-                renderItem={({ item, index }) => (
-                    <View style={[
-                        styles.tableRow,
-                        { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9' }
-                    ]}>
-                        <Text style={styles.cell}>{item.name}</Text>
-                        <Text style={styles.cell}>{item.product_service}</Text>
-                        <View style={styles.actionButtons}>
+                renderItem={({ item, index }) => {
+                    const isLast = index === filteredVendors.length - 1;
+                    return (
+                        <View
+                            style={[
+                                styles.tableRow,
+                                isLast && styles.tableRowLast,
+                                { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9' }
+                            ]}
+                        >
+                            <Text style={styles.cell}>{item.name}</Text>
+                            <Text style={styles.cell}>{item.product_service}</Text>
                             <View style={styles.actionButtons}>
-                                <TouchableOpacity onPress={() => openEditModal(item)}>
-                                    <Text style={styles.editButton}>✏️</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleDelete(item.vendor_id)}>
-                                    <Text style={styles.deleteButton}>🗑️</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => openSurveyDetailsModal(item.vendor_id)}>
-                                    <Text style={styles.viewButton}>👁️</Text>
-                                </TouchableOpacity>
+                                <MiniButton iconName="eye" tint={UIColors.primary} onPress={() => openSurveyDetailsModal(item.vendor_id)} />
+                                <MiniButton iconName="edit-2" tint={UIColors.secondary} onPress={() => openEditModal(item)} />
+                                <MiniButton iconName="trash-2" tint={UIColors.danger} onPress={() => handleDelete(item.vendor_id)} />
                             </View>
-
                         </View>
-                    </View>
-                )}
+                    );
+                }}
             />
 
             <CustomModalForm
@@ -211,6 +297,7 @@ const styles = StyleSheet.create({
         width: '100%',
         alignSelf: 'center',
         backgroundColor: UIColors.background,
+        marginLeft: 35,
     },
     headerRow: {
         flexDirection: 'row',
@@ -222,15 +309,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: UIColors.header,
-    },
-    tableHeader: {
-        flexDirection: 'row',
-        backgroundColor: UIColors.header,
-        paddingVertical: 6,
-        paddingHorizontal: 5,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: '#ddd',
     },
     headerCellLeft: {
         flex: 1,
@@ -247,15 +325,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         paddingRight: 10,
         color: UIColors.textLight,
-    },
-    tableRow: {
-        flexDirection: 'row',
-        paddingVertical: 8,
-        paddingHorizontal: 5,
-        borderBottomWidth: 1,
-        borderColor: '#eee',
-        alignItems: 'center',
-        backgroundColor: UIColors.textLight,
     },
     cell: {
         flex: 1,
@@ -289,4 +358,56 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 8,
     },
+    filterRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        marginBottom: 12,
+        marginTop: -8, // optional: tuck closer under header row
+    },
+    filterLabel: {
+        color: UIColors.textSecondary,
+        fontSize: 12,
+        marginBottom: 6,
+    },
+    filterInputWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderWidth: 1,
+        borderColor: UIColors.border,
+        backgroundColor: UIColors.surface,
+        borderRadius: 8,
+    },
+    filterInput: {
+        flex: 1,
+        color: UIColors.textPrimary,
+        paddingVertical: 2,
+    },
+    tableHeader: {
+        flexDirection: 'row',
+        backgroundColor: UIColors.header,
+        paddingVertical: 6,
+        paddingHorizontal: 5,
+        borderTopLeftRadius: 6,   // ⬅ top corners
+        borderTopRightRadius: 6,
+    },
+    tableRow: {
+        flexDirection: 'row',
+        paddingVertical: 8,
+        paddingHorizontal: 5,
+        borderBottomWidth: 1,
+        borderColor: '#eee',
+        alignItems: 'center',
+        backgroundColor: UIColors.textLight,
+
+        // default flat rows
+    },
+    tableRowLast: {
+        borderBottomWidth: 0,      // remove bottom divider
+        borderBottomLeftRadius: 6, // ⬅ bottom corners
+        borderBottomRightRadius: 6,
+    },
+
 });

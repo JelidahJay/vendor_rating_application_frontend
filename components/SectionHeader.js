@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import UIColors from "../constants/UIColors";
 
 export default function SectionHeader({ title }) {
     return (
@@ -10,14 +11,14 @@ export default function SectionHeader({ title }) {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#2A9D8F',
+        backgroundColor: UIColors.header, // deep brand primary
         padding: 10,
         borderRadius: 6,
         marginBottom: 10,
     },
     text: {
-        color: 'white',
-        fontWeight: 'bold',
+        color: UIColors.textLight, // white/light text
+        fontWeight: '700',
         fontSize: 16,
     },
 });

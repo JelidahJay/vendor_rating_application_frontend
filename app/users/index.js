@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-    View, Text, FlatList, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, Platform
+    View, Text, FlatList, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, Platform, TextInput
 } from 'react-native';
 import { getUsers, createUser, updateUser, deleteUser, getDepartments } from '../../services/api';
 import CustomModalForm from '../../components/CustomModalForm';
 import UIColors from '../../constants/UIColors';
+import { Feather } from '@expo/vector-icons';
+import { ActionGroup, ViewButton, EditButton, DeleteButton } from '@/components/ActionButtons';
 
 export default function UsersScreen() {
     const [users, setUsers] = useState([]);
@@ -20,13 +22,15 @@ export default function UsersScreen() {
     });
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchDepartments();
-    }, []);
+    // filter state
+    const [firstNameQuery, setFirstNameQuery] = useState('');
+    const [lastNameQuery, setLastNameQuery]   = useState('');
+    const [emailQuery, setEmailQuery]         = useState('');
 
+    useEffect(() => { fetchDepartments(); }, []);
     const fetchDepartments = async () => {
         try {
-            const res = await getDepartments(); // API call
+            const res = await getDepartments();
             setDepartments(res);
         } catch (error) {
             console.error("Failed to fetch departments", error);
@@ -72,47 +76,37 @@ export default function UsersScreen() {
     };
 
     const handleSubmit = async () => {
-        console.log("handleSubmit triggered");
-
         const action = editingUser ? 'edit' : 'create';
-        const message = `Are you sure you want to ${action} this user?`;
+        const confirmed = Platform.OS === 'web'
+            ? window.confirm(`Are you sure you want to ${action} this user?`)
+            : true;
 
-        const confirmed = Platform.OS === 'web' ? window.confirm(message) : true;
+        if (!confirmed) return;
 
-        if (confirmed) {
-            try {
-                if (editingUser) {
-                    console.log("Calling updateUser...");
-                    await updateUser(editingUser.user_id, formData);
-                } else {
-                    console.log("Calling createUser...");
-                    await createUser(formData);
-                }
-                setModalVisible(false);
-                console.log("User saved successfully, refreshing...");
-                fetchUsers();
-            } catch (error) {
-                console.error(`Error trying to ${action} user:`, error);
-                if (Platform.OS !== 'web') {
-                    Alert.alert('Error', `Failed to ${action} user.`);
-                } else {
-                    window.alert(`Failed to ${action} user.`);
-                }
+        try {
+            if (editingUser) {
+                await updateUser(editingUser.user_id, formData);
+            } else {
+                await createUser(formData);
+            }
+            setModalVisible(false);
+            fetchUsers();
+        } catch (error) {
+            console.error(`Error trying to ${action} user:`, error);
+            if (Platform.OS !== 'web') {
+                Alert.alert('Error', `Failed to ${action} user.`);
+            } else {
+                window.alert(`Failed to ${action} user.`);
             }
         }
     };
 
     const handleDelete = async (userId) => {
-        console.log("Delete requested for user:", userId);
-
         if (Platform.OS === 'web') {
             const confirmed = window.confirm("Are you sure you want to delete this user?");
             if (!confirmed) return;
-
             try {
-                console.log("Calling deleteUser...");
                 await deleteUser(userId);
-                console.log("User deleted, fetching updated list...");
                 fetchUsers();
             } catch (error) {
                 console.error("Delete failed:", error);
@@ -126,9 +120,7 @@ export default function UsersScreen() {
                     style: "destructive",
                     onPress: async () => {
                         try {
-                            console.log("Calling deleteUser...");
                             await deleteUser(userId);
-                            console.log("User deleted, fetching updated list...");
                             fetchUsers();
                         } catch (error) {
                             console.error("Delete failed:", error);
@@ -140,8 +132,7 @@ export default function UsersScreen() {
         }
     };
 
-
-    const departmentOptions = departments.map(d => ({ label: d.name, value: d.department_id }));
+    const departmentOptions = (departments || []).map(d => ({ label: d.name, value: d.department_id }));
     const roleOptions = ['rater', 'admin'];
 
     const userFields = [
@@ -149,9 +140,33 @@ export default function UsersScreen() {
         { name: 'email', label: 'Email', placeholder: 'Enter email address' },
         { name: 'role', label: 'Role', type: 'select', options: roleOptions },
         { name: 'department_id', label: 'Department', type: 'select', options: departmentOptions },
-        // Only show if role is admin
         formData.role === 'admin' ? { name: 'password', label: 'Password', placeholder: 'Enter password', secure: true } : null
     ].filter(Boolean);
+
+    // fuzzy filters: includes anywhere (start/middle/end), case-insensitive
+    const filteredUsers = useMemo(() => {
+        const qFirst = (firstNameQuery || '').trim().toLowerCase();
+        const qLast  = (lastNameQuery  || '').trim().toLowerCase();
+        const qEmail = (emailQuery     || '').trim().toLowerCase();
+
+        if (!Array.isArray(users)) return [];
+
+        return users.filter(u => {
+            const full = (u?.full_name || '').trim();
+            const email = (u?.email || '').toLowerCase();
+
+            const [first = '', last = ''] = full.split(/\s+/); // simple split: "First Last"
+            const firstLc = first.toLowerCase();
+            const lastLc  = last.toLowerCase();
+            const fullLc  = full.toLowerCase();
+
+            const firstOk = qFirst ? (firstLc.includes(qFirst) || fullLc.includes(qFirst)) : true;
+            const lastOk  = qLast  ? (lastLc.includes(qLast)   || fullLc.includes(qLast))  : true;
+            const emailOk = qEmail ? email.includes(qEmail) : true;
+
+            return firstOk && lastOk && emailOk;
+        });
+    }, [users, firstNameQuery, lastNameQuery, emailQuery]);
 
     return (
         <View style={styles.container}>
@@ -160,6 +175,71 @@ export default function UsersScreen() {
                 <TouchableOpacity style={styles.button} onPress={openCreateModal}>
                     <Text style={{ color: UIColors.textLight, fontWeight: 'bold' }}>Add New User</Text>
                 </TouchableOpacity>
+            </View>
+
+            {/* Filters */}
+            <View style={styles.filterRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.filterLabel}>First name</Text>
+                    <View style={styles.filterInputWrap}>
+                        <Feather name="search" size={14} color={UIColors.textSecondary} />
+                        <TextInput
+                            placeholder="e.g. John"
+                            placeholderTextColor={UIColors.textSecondary}
+                            value={firstNameQuery}
+                            onChangeText={setFirstNameQuery}
+                            style={styles.filterInput}
+                        />
+                        {!!firstNameQuery && (
+                            <TouchableOpacity onPress={() => setFirstNameQuery('')}>
+                                <Feather name="x" size={14} color={UIColors.textSecondary} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                <View style={{ width: 12 }} />
+
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.filterLabel}>Last name</Text>
+                    <View style={styles.filterInputWrap}>
+                        <Feather name="search" size={14} color={UIColors.textSecondary} />
+                        <TextInput
+                            placeholder="e.g. Doe"
+                            placeholderTextColor={UIColors.textSecondary}
+                            value={lastNameQuery}
+                            onChangeText={setLastNameQuery}
+                            style={styles.filterInput}
+                        />
+                        {!!lastNameQuery && (
+                            <TouchableOpacity onPress={() => setLastNameQuery('')}>
+                                <Feather name="x" size={14} color={UIColors.textSecondary} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                <View style={{ width: 12 }} />
+
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.filterLabel}>Email</Text>
+                    <View style={styles.filterInputWrap}>
+                        <Feather name="search" size={14} color={UIColors.textSecondary} />
+                        <TextInput
+                            placeholder="e.g. jane@company.com"
+                            placeholderTextColor={UIColors.textSecondary}
+                            value={emailQuery}
+                            onChangeText={setEmailQuery}
+                            style={styles.filterInput}
+                            autoCapitalize="none"
+                        />
+                        {!!emailQuery && (
+                            <TouchableOpacity onPress={() => setEmailQuery('')}>
+                                <Feather name="x" size={14} color={UIColors.textSecondary} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
             </View>
 
             <View style={styles.tableHeader}>
@@ -174,26 +254,48 @@ export default function UsersScreen() {
                 <ActivityIndicator size="large" color={UIColors.primary} />
             ) : (
                 <FlatList
-                    data={users}
-                    keyExtractor={(item) => item.user_id.toString()}
-                    renderItem={({ item, index }) => (
-                        <View style={styles.tableRow}>
-                            <Text style={styles.cell}>{item.full_name}</Text>
-                            <Text style={styles.cell}>{item.email}</Text>
-                            <Text style={[styles.cell, { color: item.role === 'admin' ? UIColors.primary : '#555' }]}>{item.role}</Text>
-                            <Text style={styles.cell}>{item.department?.name || 'N/A'}</Text>
-                            <View style={styles.actionButtons}>
-                                <TouchableOpacity onPress={() => openEditModal(item)}>
-                                    <Text style={styles.editButton}>✏️</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleDelete(item.user_id)}>
-                                    <Text style={styles.deleteButton}>🗑️</Text>
-                                </TouchableOpacity>
-                            </View>
+                data={filteredUsers}
+            keyExtractor={(item) => item.user_id.toString()}
+            renderItem={({ item, index }) => {
+                const isLast = index === filteredUsers.length - 1;
+                return (
+                    <View
+                        style={[
+                            styles.tableRow,
+                            isLast && styles.tableRowLast,
+                            { backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9f9f9' }
+                        ]}
+                    >
+                        <Text style={styles.cell}>{item.full_name}</Text>
+                        <Text style={styles.cell}>{item.email}</Text>
+                        <Text style={[styles.cell, { color: item.role === 'admin' ? UIColors.primary : '#555' }]}>
+                            {item.role}
+                        </Text>
+                        <Text style={styles.cell}>{item.department?.name || 'N/A'}</Text>
+
+                        <View style={styles.actionButtons}>
+                            <ActionGroup>
+                                <ViewButton
+                                    onPress={() => {
+                                        const lines = [
+                                            `Name: ${item.full_name}`,
+                                            `Email: ${item.email}`,
+                                            `Role: ${item.role}`,
+                                            `Department: ${item.department?.name || 'N/A'}`
+                                        ].join('\n');
+                                        if (Platform.OS === 'web') window.alert(lines); else Alert.alert('User', lines);
+                                    }}
+                                />
+                                <EditButton onPress={() => openEditModal(item)} />
+                                <DeleteButton onPress={() => handleDelete(item.user_id)} />
+                            </ActionGroup>
                         </View>
-                    )}
-                />
-            )}
+                    </View>
+                );
+            }}
+        />
+
+    )}
 
             <CustomModalForm
                 visible={modalVisible}
@@ -215,11 +317,12 @@ const styles = StyleSheet.create({
         width: '100%',
         alignSelf: 'center',
         backgroundColor: UIColors.background,
+        marginLeft: 35, // match the global gutter from SideNav
     },
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 20,
+        marginBottom: 16,
         alignItems: 'center',
     },
     title: {
@@ -227,15 +330,35 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: UIColors.header,
     },
-    tableHeader: {
+    // Filters
+    filterRow: {
         flexDirection: 'row',
-        backgroundColor: UIColors.header,
-        paddingVertical: 6,
-        paddingHorizontal: 5,
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: '#ddd',
+        alignItems: 'flex-end',
+        marginBottom: 12,
+        marginTop: -4,
     },
+    filterLabel: {
+        color: UIColors.textSecondary,
+        fontSize: 12,
+        marginBottom: 6,
+    },
+    filterInputWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderWidth: 1,
+        borderColor: UIColors.border,
+        backgroundColor: UIColors.surface,
+        borderRadius: 8,
+    },
+    filterInput: {
+        flex: 1,
+        color: UIColors.textPrimary,
+        paddingVertical: 2,
+    },
+
     headerCellLeft: {
         flex: 1,
         fontWeight: 'bold',
@@ -252,15 +375,6 @@ const styles = StyleSheet.create({
         paddingRight: 10,
         color: UIColors.textLight,
     },
-    tableRow: {
-        flexDirection: 'row',
-        paddingVertical: 8,
-        paddingHorizontal: 5,
-        borderBottomWidth: 1,
-        borderColor: '#eee',
-        alignItems: 'center',
-        backgroundColor: UIColors.textLight,
-    },
     cell: {
         flex: 1,
         textAlign: 'left',
@@ -276,16 +390,6 @@ const styles = StyleSheet.create({
         gap: 10,
         paddingRight: 10,
     },
-    editButton: {
-        fontSize: 20,
-        marginHorizontal: 10,
-        color: UIColors.accent,
-    },
-    deleteButton: {
-        fontSize: 20,
-        marginHorizontal: 10,
-        color: UIColors.primary,
-    },
     button: {
         backgroundColor: UIColors.primary,
         color: UIColors.textLight,
@@ -293,4 +397,28 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 8,
     },
+    // styles (add/replace)
+    tableHeader: {
+        flexDirection: 'row',
+        backgroundColor: UIColors.header,
+        paddingVertical: 6,
+        paddingHorizontal: 5,
+        borderTopLeftRadius: 6,      // ⬅ rounded top
+        borderTopRightRadius: 6,
+    },
+    tableRow: {
+        flexDirection: 'row',
+        paddingVertical: 8,
+        paddingHorizontal: 5,
+        borderBottomWidth: 1,
+        borderColor: '#eee',
+        alignItems: 'center',
+        backgroundColor: UIColors.textLight,
+    },
+    tableRowLast: {
+        borderBottomWidth: 0,        // ⬅ remove last divider
+        borderBottomLeftRadius: 6,   // ⬅ rounded bottom
+        borderBottomRightRadius: 6,
+    },
+
 });

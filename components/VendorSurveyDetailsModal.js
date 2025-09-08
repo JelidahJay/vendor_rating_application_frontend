@@ -22,7 +22,7 @@ export default function VendorSurveyDetailsModal({ visible, details, onClose }) 
                             <Text style={styles.item}>
                                 {item.raterName} - {new Date(item.submittedAt).toLocaleString()}
                             </Text>
-                        )}
+                        )} ss
                         ListEmptyComponent={<Text style={styles.empty}>No completed ratings yet.</Text>}
                     />
 

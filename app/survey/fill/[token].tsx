@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, View, Text, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import {useLocalSearchParams, useNavigation, useRouter} from 'expo-router'; // ✅ This line is very important
-import {getSurveyByToken, submitSurvey} from "../../../services/api";
-import SectionHeader from "../../../components/SectionHeader";
-import SurveyMatrixQuestion from "../../../components/SurveyMatrixQuestion";
-import SurveyFooter from "../../../components/SurveyFooter";
-import ThankYouScreen from "../../thankyou";
-
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { getSurveyByToken, submitSurvey } from '../../../services/api';
+import SectionHeader from '../../../components/SectionHeader';
+import SurveyMatrixQuestion from '../../../components/SurveyMatrixQuestion';
+import SurveyFooter from '../../../components/SurveyFooter';
+import ThankYouScreen from '../../thankyou';
+import UIColors from '@/constants/UIColors';
 
 export default function SurveyFillScreen() {
     const { token } = useLocalSearchParams();
-    const navigation = useNavigation(); // Get navigation object
+    const navigation = useNavigation();
 
     const [loading, setLoading] = useState(true);
     const [survey, setSurvey] = useState(null);
@@ -20,19 +20,11 @@ export default function SurveyFillScreen() {
         if (token) {
             getSurveyByToken(token)
                 .then((res) => {
-                    console.log('Fetched survey:', res);
                     setSurvey(res);
                     setLoading(false);
-
-                    // Set the title dynamically when data loads
-                    navigation.setOptions({
-                        title: `Survey for ${res.vendor_name}`,
-                    });
+                    navigation.setOptions({ title: `Survey for ${res.vendor_name}` });
                 })
-                .catch((err) => {
-                    console.error('Error fetching survey:', err);
-                    setLoading(false);
-                });
+                .catch(() => setLoading(false));
         }
     }, [token]);
 
@@ -40,51 +32,37 @@ export default function SurveyFillScreen() {
         setAnswers((prev) => ({ ...prev, [questionId]: value }));
     };
 
-    const router = useRouter(); // add at the top!
+    const router = useRouter();
 
     const handleSubmit = async () => {
         if (!survey) return;
 
-        const unanswered = survey.survey_questions.filter(
-            (q) => !answers[q.question_id]
-        );
-
+        const unanswered = survey.survey_questions.filter((q) => !answers[q.question_id]);
         if (unanswered.length > 0) {
-            Alert.alert("Incomplete Survey", `Please answer all required questions (${unanswered.length} missing).`);
+            Alert.alert('Incomplete Survey', `Please answer all required questions (${unanswered.length} missing).`);
             return;
         }
 
         try {
             await submitSurvey(token, answers);
-            console.log('✅ Survey submitted successfully');
-
-            // Redirect to Thank You page
             router.replace('../../thankyou');
         } catch (error) {
-            console.error('Error submitting survey:', error);
-            Alert.alert("Error", "Failed to submit survey.");
+            Alert.alert('Error', 'Failed to submit survey.');
         }
     };
 
     useEffect(() => {
         if (!survey) return;
-
         const lc = (s) => (s || '').toString().toLowerCase();
 
-        // Q1: Supplier/Company Name
-        const qSupplier = survey.survey_questions.find(q =>
-            lc(q.question_text).includes('supplier') ||
-            lc(q.question_text).includes('company name')
+        const qSupplier = survey.survey_questions.find(
+            (q) => lc(q.question_text).includes('supplier') || lc(q.question_text).includes('company name')
         );
+        const qService = survey.survey_questions.find((q) => {
+            const t = lc(q.question_text);
+            return t.includes('product/service being evaluated') || t.includes('product / service being evaluated') || (t.includes('product') && t.includes('service'));
+        });
 
-        // Q2: Product/Service being evaluated
-        const qService = survey.survey_questions.find(q =>
-            lc(q.question_text).includes('product/service being evaluated') ||
-            lc(q.question_text).includes('product / service being evaluated') || // just in case of spacing
-            lc(q.question_text).includes('product') && lc(q.question_text).includes('service')
-        );
-
-        // Prefer the new field; fallback in case older payloads use different names
         const serviceValue =
             survey.vendor_service ??
             survey.product_service ??
@@ -94,33 +72,24 @@ export default function SurveyFillScreen() {
 
         setAnswers((prev) => {
             const next = { ...prev };
-            // @ts-ignore
-            if (qSupplier && next[qSupplier.question_id] == null) {
-                // @ts-ignore
-                next[qSupplier.question_id] = survey.vendor_name || '';
-            }
-            // @ts-ignore
-            if (qService && next[qService.question_id] == null) {
-                // @ts-ignore
-                next[qService.question_id] = serviceValue;
-            }
+            if (qSupplier && next[qSupplier.question_id] == null) next[qSupplier.question_id] = survey.vendor_name || '';
+            if (qService && next[qService.question_id] == null) next[qService.question_id] = serviceValue;
             return next;
         });
     }, [survey]);
 
-
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" />
+            <View style={[styles.fill, styles.center]}>
+                <ActivityIndicator size="large" color={UIColors.primary} />
             </View>
         );
     }
 
     if (!survey) {
         return (
-            <View style={styles.errorContainer}>
-                <Text>Survey not found or already completed.</Text>
+            <View style={[styles.fill, styles.center]}>
+                <Text style={{ color: UIColors.textPrimary }}>Survey not found or already completed.</Text>
             </View>
         );
     }
@@ -128,10 +97,11 @@ export default function SurveyFillScreen() {
     return (
         <ScrollView contentContainerStyle={styles.scroll}>
             <View style={styles.formContainer}>
-                {/* Rater and Vendor Information */}
-                <Text style={styles.infoText}>Rater: {survey.rater_name} ({survey.rater_email})</Text>
+                <Text style={styles.infoText}>
+                    Rater: <Text style={{ color: UIColors.textStrong }}>{survey.rater_name}</Text>{' '}
+                    <Text style={{ color: UIColors.textSecondary }}>({survey.rater_email})</Text>
+                </Text>
 
-                {/* Survey Questions */}
                 {survey.survey_questions.map((q) => (
                     <View key={q.question_id} style={{ marginBottom: 20 }}>
                         <SectionHeader title={q.question_text} />
@@ -146,10 +116,8 @@ export default function SurveyFillScreen() {
                     </View>
                 ))}
 
-
-                {/* Submit Button */}
                 <View style={{ marginTop: 20 }}>
-                    <Button title="Submit Survey" onPress={handleSubmit} />
+                    <Button title="Submit Survey" onPress={handleSubmit} color={UIColors.primary} />
                 </View>
 
                 <SurveyFooter />
@@ -159,37 +127,32 @@ export default function SurveyFillScreen() {
 }
 
 const styles = StyleSheet.create({
+    fill: { flex: 1, backgroundColor: UIColors.background },
+    center: { justifyContent: 'center', alignItems: 'center' },
+
     scroll: {
         paddingVertical: 30,
         alignItems: 'center',
-        backgroundColor: '#f2f2f2',
+        backgroundColor: UIColors.background,
     },
     formContainer: {
         width: '100%',
         maxWidth: 600,
-        backgroundColor: '#fff',
+        backgroundColor: UIColors.surface,
         padding: 20,
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: UIColors.border,
         shadowColor: '#000',
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.06,
         shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 6,
-        elevation: 4,
+        shadowRadius: 8,
+        elevation: 2,
     },
     infoText: {
         fontSize: 16,
         fontWeight: '600',
         marginBottom: 8,
-        color: '#333',
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    errorContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        color: UIColors.textPrimary,
     },
 });

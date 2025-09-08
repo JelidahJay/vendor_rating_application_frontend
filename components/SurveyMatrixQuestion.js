@@ -1,22 +1,39 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
-
+import UIColors from "../constants/UIColors";
 
 const RATING_OPTIONS = ['1', '2', '3', '4', '5'];
 const RADIO_OPTIONS = ['Yes', 'No'];
 const COMM_OPTIONS = ['Poor', 'Average', 'Good'];
 
-export default function SurveyMatrixQuestion({ questionId, questionText, questionType, options = [], value, onChange }) {
+export default function SurveyMatrixQuestion({
+                                                 questionId,
+                                                 questionText,
+                                                 questionType,
+                                                 options = [],
+                                                 value,
+                                                 onChange
+                                             }) {
     const renderRadio = (choices) => (
         <View style={styles.optionsRow}>
             {choices.map((opt) => (
                 <Pressable
                     key={opt}
-                    style={[styles.circle, value === opt && styles.selected]}
+                    style={[
+                        styles.circle,
+                        value === opt && styles.selectedCircle
+                    ]}
                     onPress={() => onChange(questionId, opt)}
                 >
                     {value === opt && <View style={styles.innerCircle} />}
-                    <Text style={styles.optionLabel}>{opt}</Text>
+                    <Text
+                        style={[
+                            styles.optionLabel,
+                            value === opt && { color: UIColors.primary }
+                        ]}
+                    >
+                        {opt}
+                    </Text>
                 </Pressable>
             ))}
         </View>
@@ -25,13 +42,13 @@ export default function SurveyMatrixQuestion({ questionId, questionText, questio
     if (questionType === 'Text') {
         return (
             <View style={styles.container}>
-                <Text style={[styles.label]}>
-                    {questionText} <Text style={{ color: 'red' }}>*</Text>
+                <Text style={styles.label}>
+                    {questionText} <Text style={{ color: UIColors.danger }}>*</Text>
                 </Text>
-
                 <TextInput
                     style={styles.input}
                     placeholder="Enter response"
+                    placeholderTextColor={UIColors.textSecondary}
                     value={value}
                     onChangeText={(text) => onChange(questionId, text)}
                 />
@@ -42,15 +59,15 @@ export default function SurveyMatrixQuestion({ questionId, questionText, questio
     if (questionType === 'Paragraph') {
         return (
             <View style={styles.container}>
-                <Text style={[styles.label]}>
-                    {questionText} <Text style={{ color: 'red' }}>*</Text>
+                <Text style={styles.label}>
+                    {questionText} <Text style={{ color: UIColors.danger }}>*</Text>
                 </Text>
-
                 <TextInput
                     style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
                     multiline
                     numberOfLines={4}
                     placeholder="Enter detailed response"
+                    placeholderTextColor={UIColors.textSecondary}
                     value={value}
                     onChangeText={(text) => onChange(questionId, text)}
                 />
@@ -61,8 +78,8 @@ export default function SurveyMatrixQuestion({ questionId, questionText, questio
     if (questionType === 'Rating') {
         return (
             <View style={styles.container}>
-                <Text style={[styles.label]}>
-                    {questionText} <Text style={{ color: 'red' }}>*</Text>
+                <Text style={styles.label}>
+                    {questionText} <Text style={{ color: UIColors.danger }}>*</Text>
                 </Text>
                 {renderRadio(RATING_OPTIONS)}
             </View>
@@ -81,8 +98,8 @@ export default function SurveyMatrixQuestion({ questionId, questionText, questio
     if (questionType === 'Radio') {
         return (
             <View style={styles.container}>
-                <Text style={[styles.label]}>
-                    {questionText} <Text style={{ color: 'red' }}>*</Text>
+                <Text style={styles.label}>
+                    {questionText} <Text style={{ color: UIColors.danger }}>*</Text>
                 </Text>
                 {renderRadio(RADIO_OPTIONS)}
             </View>
@@ -94,13 +111,19 @@ export default function SurveyMatrixQuestion({ questionId, questionText, questio
 
 const styles = StyleSheet.create({
     container: { marginBottom: 20 },
-    label: { fontWeight: '600', marginBottom: 6, fontSize: 15 },
+    label: {
+        fontWeight: '600',
+        marginBottom: 6,
+        fontSize: 15,
+        color: UIColors.textPrimary,
+    },
     input: {
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: UIColors.border,
         padding: 10,
         borderRadius: 6,
-        backgroundColor: '#fff',
+        backgroundColor: UIColors.surface,
+        color: UIColors.textPrimary,
     },
     optionsRow: {
         flexDirection: 'row',
@@ -113,25 +136,26 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        padding: 6,
+        paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 20,
-        borderColor: '#2A9D8F',
-        backgroundColor: '#f4f4f4',
+        borderColor: UIColors.border,
+        backgroundColor: UIColors.surface,
+    },
+    selectedCircle: {
+        backgroundColor: UIColors.primarySoft,
+        borderColor: UIColors.primary,
     },
     innerCircle: {
         width: 10,
         height: 10,
-        backgroundColor: '#2A9D8F',
+        backgroundColor: UIColors.primary,
         borderRadius: 5,
         marginRight: 6,
-    },
-    selected: {
-        backgroundColor: '#CFF5ED',
-        borderColor: '#1D7874',
     },
     optionLabel: {
         fontSize: 14,
         marginLeft: 4,
+        color: UIColors.textPrimary,
     },
 });

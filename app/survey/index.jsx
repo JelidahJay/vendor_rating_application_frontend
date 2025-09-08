@@ -10,6 +10,7 @@ import {
 } from '../../services/api';
 import CustomModalForm from '../../components/CustomModalForm';
 import UIColors from '../../constants/UIColors';
+import {CopyButton} from "../../components/ActionButtons";
 
 export default function SurveyScreen() {
     const [modalVisible, setModalVisible] = useState(false);
@@ -181,20 +182,21 @@ export default function SurveyScreen() {
                 <Text style={styles.emptyText}>No completed surveys found.</Text>
             ) : (
                 <View>
-                    <View style={styles.tableHeaderCompleted}>
+                    <View style={styles.tableHeader}>
                         <Text style={styles.headerCell}>Rater</Text>
                         <Text style={styles.headerCell}>Vendor</Text>
                         <Text style={styles.headerCell}>Date</Text>
                     </View>
-                    {surveyData.map((dept) =>
-                        dept.surveys.map((s, i) => (
-                            <View key={i} style={styles.tableRowCompleted}>
+                    {surveyData.flatMap((dept) => dept.surveys).map((s, i, arr) => {
+                        const isLast = i === arr.length - 1;
+                        return (
+                            <View key={i} style={[styles.tableRow, isLast && styles.tableRowLast]}>
                                 <Text style={styles.cell}>{s.rater_name}</Text>
                                 <Text style={styles.cell}>{s.vendor_name}</Text>
                                 <Text style={styles.cell}>{new Date(s.submitted_at).toLocaleDateString()}</Text>
                             </View>
-                        ))
-                    )}
+                        );
+                    })}
                 </View>
             )}
 
@@ -203,25 +205,26 @@ export default function SurveyScreen() {
                 <Text style={styles.emptyText}>None</Text>
             ) : (
                 <View>
-                    <View style={styles.tableHeaderPending}>
+                    <View style={styles.tableHeader}>
                         <Text style={styles.headerCell}>Rater</Text>
                         <Text style={styles.headerCell}>Vendor</Text>
                         <Text style={styles.headerCell}>Valid Until</Text>
                         <Text style={styles.headerCell}>Action</Text>
                     </View>
-                    {pendingSurveys.map((s, i) => (
-                        <View key={i} style={styles.tableRowPending}>
-                            <Text style={styles.cell}>{s.rater_name}</Text>
-                            <Text style={styles.cell}>{s.vendor_name}</Text>
-                            <Text style={styles.cell}>{new Date(s.valid_until).toLocaleDateString()}</Text>
-                            <View style={styles.cell}>
-                                <TouchableOpacity onPress={() => navigator.clipboard.writeText(`${window.location.origin}/survey/fill/${s.token}`)}>
-                                    <Text style={styles.copyButton}>📋 Copy</Text>
-                                </TouchableOpacity>
+                    {pendingSurveys.map((s, i) => {
+                        const isLast = i === pendingSurveys.length - 1;
+                        const url = `${window.location.origin}/survey/fill/${s.token}`;
+                        return (
+                            <View key={i} style={[styles.tableRow, isLast && styles.tableRowLast]}>
+                                <Text style={styles.cell}>{s.rater_name}</Text>
+                                <Text style={styles.cell}>{s.vendor_name}</Text>
+                                <Text style={styles.cell}>{new Date(s.valid_until).toLocaleDateString()}</Text>
+                                <View style={[styles.cell, { alignItems: 'flex-start' }]}>
+                                    <CopyButton onPress={() => navigator.clipboard.writeText(url)} />
+                                </View>
                             </View>
-                        </View>
-                    ))}
-
+                        );
+                    })}
                 </View>
             )}
 
@@ -239,74 +242,37 @@ export default function SurveyScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        padding: 20,
-        backgroundColor: UIColors.background,
-    },
-    headerRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: UIColors.header,
-    },
-    button: {
-        backgroundColor: UIColors.primary,
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        borderRadius: 8,
-    },
-    subTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginVertical: 10,
-        color: UIColors.accent,
-    },
-    tableHeaderCompleted: {
+    container: { padding: 20, backgroundColor: UIColors.background, marginLeft: 20 },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+    title: { fontSize: 24, fontWeight: 'bold', color: UIColors.header },
+    button: { backgroundColor: UIColors.primary, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 8 },
+    subTitle: { fontSize: 18, fontWeight: 'bold', marginVertical: 10, color: UIColors.accent },
+
+    // unified rounded table header
+    tableHeader: {
         flexDirection: 'row',
         backgroundColor: UIColors.header,
         padding: 8,
+        borderTopLeftRadius: 6,
+        borderTopRightRadius: 6,
     },
-    tableHeaderPending: {
-        flexDirection: 'row',
-        backgroundColor: UIColors.header,
-        padding: 8,
-    },
-    headerCell: {
-        flex: 1,
-        fontWeight: 'bold',
-        color: UIColors.textLight,
-        fontSize: 14,
-    },
-    tableRowCompleted: {
+    headerCell: { flex: 1, fontWeight: 'bold', color: UIColors.textLight, fontSize: 14 },
+
+    // rows share style; last row gets rounded bottom
+    tableRow: {
         flexDirection: 'row',
         paddingVertical: 6,
+        paddingHorizontal: 6,
         borderBottomWidth: 1,
         borderColor: '#ddd',
         backgroundColor: UIColors.textLight,
     },
-    tableRowPending: {
-        flexDirection: 'row',
-        paddingVertical: 6,
-        borderBottomWidth: 1,
-        borderColor: '#ddd',
-        backgroundColor: UIColors.textLight,
+    tableRowLast: {
+        borderBottomWidth: 0,
+        borderBottomLeftRadius: 6,
+        borderBottomRightRadius: 6,
     },
-    cell: {
-        flex: 1,
-        fontSize: 14,
-        color: UIColors.textPrimary,
-    },
-    copyButton: {
-        color: UIColors.primary,
-        fontWeight: 'bold',
-    },
-    emptyText: {
-        fontStyle: 'italic',
-        color: 'gray'
-    }
+    cell: { flex: 1, fontSize: 14, color: UIColors.textPrimary },
+
+    emptyText: { fontStyle: 'italic', color: 'gray' },
 });

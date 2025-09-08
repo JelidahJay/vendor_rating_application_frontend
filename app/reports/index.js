@@ -59,25 +59,26 @@ function StackedBar({ segments }) {
 
 /* ================= palette & legend ================= */
 
+// Charts palette (aligns with UIColors)
 const COLORS = {
-    red2:  '#ef4444', // poor
-    gray:  '#cbd5e1', // neutral
-    teal2: '#26a69a', // good
-    teal3: '#00796b', // very good
+    poor:   UIColors.chartPoor,     // coral
+    neutral:UIColors.chartNeutral,  // grey
+    good:   UIColors.chartGood,     // sky
+    good2:  UIColors.primary,       // deep indigo for stronger bars
+};
+const colorForScore = (n) => {
+    if (n <= 2) return COLORS.poor;
+    if (n === 3) return COLORS.neutral;
+    if (n === 4) return COLORS.good;
+    return COLORS.good2; // 5
 };
 
 const LEGEND = [
-    { label: 'High (4–5) / Yes', color: COLORS.teal3 },
-    { label: 'Medium (3)',       color: COLORS.gray  },
-    { label: 'Low (1–2) / No',   color: COLORS.red2  },
+    { label: 'High (4–5) / Yes', color: COLORS.good2 },   // deep indigo
+    { label: 'Medium (3)',       color: COLORS.neutral }, // soft gray
+    { label: 'Low (1–2) / No',   color: COLORS.poor },    // coral
 ];
 
-const colorForScore = (n) => {
-    if (n <= 2) return COLORS.red2;
-    if (n === 3) return COLORS.gray;
-    if (n === 4) return COLORS.teal2;
-    return COLORS.teal3; // 5
-};
 
 /* ================= shaping (Survey dashboard) ================= */
 
@@ -123,15 +124,22 @@ function buildQuestionItems(completed) {
         });
     });
 
-    const yesNo = (qid, yesLabel='Yes', noLabel='No') => {
-        const cfg = QUESTION_CONFIG[qid]; if (!cfg) return null;
+    const yesNo = (qid, yesLabel = 'Yes', noLabel = 'No') => {
+        const cfg = QUESTION_CONFIG[qid];
+        if (!cfg) return null;
+
         const arr = bucket.get(qid) || [];
         const y = arr.filter(isYes).length;
         const n = arr.length - y;
+
+        const pctY = Math.round(pct(y, arr.length));
+        const pctN = Math.round(pct(n, arr.length));
+
         const rows = [
-            { label: yesLabel, pct: Math.round(pct(y, arr.length)), color: COLORS.teal3 },
-            { label: noLabel,  pct: Math.round(pct(n, arr.length)), color: COLORS.red2  },
+            { label: yesLabel, pct: pctY, color: COLORS.good2 }, // teal for Yes
+            { label: noLabel,  pct: pctN, color: COLORS.poor  }, // red for No
         ];
+
         return { title: cfg.title, leftRows: rows, rightStack: rows };
     };
 
@@ -452,6 +460,7 @@ export default function ReportsPage() {
     };
 
     return (
+        <View style={{ flex: 1, backgroundColor: UIColors.background }}>
         <View style={styles.shell}>
             {/* Sidebar */}
             <View style={styles.sidebar}>
@@ -490,6 +499,31 @@ export default function ReportsPage() {
                     value={filters.department_id}
                     onChangeText={(t) => setFilters({ ...filters, department_id: t })}
                 />
+
+                {/* Export (filtered) */}
+                {tab === 'survey' && (
+                    <View style={{ marginTop: 12, gap: 8 }}>
+                        <Text style={styles.sideLabel}>Export (applies current filters)</Text>
+                        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                            <TouchableOpacity
+                                onPress={downloadCSV}
+                                disabled={!vendorId || !completed.length || loading}
+                                style={[styles.exportBtn, (!vendorId || !completed.length || loading) && { opacity: 0.6 }]}
+                            >
+                                <Text style={styles.exportText}>Download CSV</Text>
+                            </TouchableOpacity>
+
+                            {/* Uncomment if you want Excel too */}
+                            {/* <TouchableOpacity
+                                onPress={downloadExcel}
+                                disabled={!vendorId || !completed.length || loading}
+                                style={[styles.exportBtn, (!vendorId || !completed.length || loading) && { opacity: 0.6 }]}
+                            >
+                            <Text style={styles.exportText}>Download Excel</Text>
+                            </TouchableOpacity> */}
+                        </View>
+                    </View>
+                )}
 
                 {/* Legend */}
                 <View style={{ marginTop: 14 }}>
@@ -592,25 +626,10 @@ export default function ReportsPage() {
                                 <Label>No respondents in the selected range.</Label>
                             )}
                         </View>
-                        <Text style={styles.title}>Survey Dashboard</Text>
-                        <Text style={{ color: UIColors.textSecondary, marginBottom: 8 }}>
-                            Respondents in range:{' '}
-                            <Text style={{ color: UIColors.textPrimary, fontWeight: '700' }}>{respondentCount}</Text>
-                        </Text>
-
-                        {/* Export actions */}
-                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-                            <TouchableOpacity onPress={downloadCSV} style={styles.exportBtn}>
-                                <Text style={styles.exportText}>Download CSV</Text>
-                            </TouchableOpacity>
-{/*                            <TouchableOpacity onPress={downloadExcel} style={styles.exportBtn}>
-                                <Text style={styles.exportText}>Download Excel</Text>
-                            </TouchableOpacity>*/}
-                        </View>
-
                     </>
                 )}
             </ScrollView>
+        </View>
         </View>
     );
 }
@@ -676,7 +695,12 @@ function VendorSearch({ options, value, onChange }) {
 /* ================= styles ================= */
 
 const styles = StyleSheet.create({
-    shell: { flex: 1, flexDirection: 'row', backgroundColor: UIColors.background },
+     shell: {
+    flex: 1,
+         flexDirection: 'row',
+        backgroundColor: UIColors.background,
+        marginLeft: 35,
+        },
 
     sidebar: {
         width: 280,
@@ -709,7 +733,11 @@ const styles = StyleSheet.create({
         paddingVertical: 8, paddingHorizontal: 10, backgroundColor: UIColors.textLight,
         borderBottomWidth: 1, borderBottomColor: '#f2f2f2'
     },
-    optionRowSelected: { backgroundColor: '#e7f7f7' },
+    optionRowSelected: {
+        backgroundColor: UIColors.primarySoft,
+        borderLeftWidth: 3,
+        borderLeftColor: UIColors.primarySoftBorder,
+    },
 
     sectionBlock: { marginBottom: 16 },
     sectionTitle: { fontSize: 16, fontWeight: '800', color: UIColors.accent, marginBottom: 8 },

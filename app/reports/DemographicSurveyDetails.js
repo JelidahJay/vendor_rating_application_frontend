@@ -1,21 +1,39 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    Tooltip,
+    Legend,
+    PieChart,
+    Pie,
+    Cell,
+    ResponsiveContainer,
+    CartesianGrid
+} from 'recharts';
 import UIColors from '../../constants/UIColors';
 
 const COLORS = {
-    red2:  '#ef4444', // female
-    teal3: '#00796b', // male
-    teal2: '#26a69a',
-    gray:  '#cbd5e1',
+    male: UIColors.primary,        // deep indigo (4B49AC)
+    female: UIColors.chartPoor,    // coral/red from charts palette
+    bar: UIColors.primary,         // main bars
+    barAlt: UIColors.chartNeutral, // secondary bars (light gray/blue)
+    axis: '#9aa4b2',               // subtle axis color
 };
+
 
 export default function DemographicSurveyDetails({ completed }) {
     /* --- Gender Data (static for now, replace with real later) --- */
-    const genderData = useMemo(() => [
-        { name: 'Male', value: 2, color: COLORS.teal3 },
-        { name: 'Female', value: 1, color: COLORS.red2 },
-    ], []);
+    const genderData = useMemo(
+        () => [
+            { name: 'Male', value: 2, color: COLORS.male },
+            { name: 'Female', value: 1, color: COLORS.female },
+        ],
+        []
+    );
+
 
     /* --- Department Data (static for now) --- */
     const deptData = useMemo(() => [
@@ -54,16 +72,18 @@ export default function DemographicSurveyDetails({ completed }) {
                             cx="50%"
                             cy="50%"
                             outerRadius={90}
-                            label
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                         >
-                            {genderData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
+                            {genderData.map((entry, i) => (
+                                <Cell key={`cell-${i}`} fill={entry.color} />
                             ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip formatter={(v) => [v, 'Count']} />
                         <Legend />
                     </PieChart>
                 </ResponsiveContainer>
+
             </View>
 
             {/* Department Submissions Bar Chart */}
@@ -71,13 +91,15 @@ export default function DemographicSurveyDetails({ completed }) {
                 <Text style={styles.chartTitle}>Department Submissions</Text>
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={deptData}>
-                        <XAxis dataKey="name" />
-                        <YAxis allowDecimals={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={COLORS.axis} />
+                        <XAxis dataKey="name" tick={{ fill: COLORS.axis }} tickMargin={8} />
+                        <YAxis allowDecimals={false} tick={{ fill: COLORS.axis }} />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="value" fill={COLORS.teal2} />
+                        <Bar dataKey="value" fill={COLORS.bar} barSize={24} radius={[8, 8, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
+
             </View>
 
             {/* Submission Times Bar Chart */}
@@ -85,13 +107,15 @@ export default function DemographicSurveyDetails({ completed }) {
                 <Text style={styles.chartTitle}>When Raters Submit (by hour)</Text>
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={submitData}>
-                        <XAxis dataKey="name" />
-                        <YAxis allowDecimals={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={COLORS.axis} />
+                        <XAxis dataKey="name" tick={{ fill: COLORS.axis }} tickMargin={8} />
+                        <YAxis allowDecimals={false} tick={{ fill: COLORS.axis }} />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="value" fill={COLORS.gray} />
+                        <Bar dataKey="value" fill={COLORS.barAlt} barSize={22} radius={[8, 8, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
+
             </View>
         </View>
     );
@@ -99,6 +123,17 @@ export default function DemographicSurveyDetails({ completed }) {
 
 const styles = StyleSheet.create({
     title: { fontSize: 22, fontWeight: '800', color: UIColors.header, marginBottom: 12 },
-    chartBox: { backgroundColor: UIColors.textLight, borderRadius: 12, padding: 16, marginBottom: 18 },
+    chartBox: {
+        backgroundColor: UIColors.textLight,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 18,
+        shadowColor: '#000',
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
+    },
+
     chartTitle: { fontSize: 16, fontWeight: '700', color: UIColors.accent, marginBottom: 10 },
 });

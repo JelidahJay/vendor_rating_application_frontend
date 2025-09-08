@@ -1,12 +1,23 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { FontAwesome5, MaterialIcons, Feather } from '@expo/vector-icons';
+import UIColors from "@/constants/UIColors";
+
+const GUTTER = 16;       // space around the SideNav
+const HEADER_H = 56;     // your header height
+const FOOTER_H = 40;     // your footer height
 
 export default function SideNav() {
     const pathname = usePathname();
 
     return (
         <View style={styles.sidebar}>
+            <NavItem
+                icon={<FontAwesome5 name="store" size={16} color="#cde0df" />}
+                label="Dashboard"
+                path="/dashboard"
+                currentPath={pathname}
+            />
             <NavItem
                 icon={<FontAwesome5 name="store" size={16} color="#cde0df" />}
                 label="Vendors"
@@ -58,15 +69,24 @@ function NavItem({ icon, label, path, currentPath }: any) {
 const styles = StyleSheet.create({
     sidebar: {
         position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
+        left: GUTTER,                 // left gutter shows the page bg
+        top: HEADER_H + GUTTER,       // gap below header
+        bottom: FOOTER_H + GUTTER,    // gap above footer
         width: 200,
-        backgroundColor: '#014d4e', // dark teal green
-        paddingTop: 60,
+        backgroundColor: UIColors.textLight, // card-like nav
+        borderRadius: 12,
+        paddingVertical: 14,
         paddingHorizontal: 10,
         zIndex: 100,
+
+        // subtle shadow
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 3,
     },
+
     navItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -77,19 +97,22 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     activeNavItem: {
-        backgroundColor: '#cc5500', // tangerine / burnt orange
+        backgroundColor: UIColors.primary, // #4B49AC
     },
     icon: {
         width: 22,
         alignItems: 'center',
     },
     link: {
-        color: '#cde0df', // soft teal text
+        color: UIColors.textPrimary,
         fontSize: 14,
         fontWeight: '500',
     },
     activeText: {
-        color: '#fff',
+        color: '#FFFFFF', // white text on active background
         fontWeight: '600',
     },
 });
+
+
+

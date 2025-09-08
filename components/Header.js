@@ -13,11 +13,11 @@ export default function Header() {
 const styles = StyleSheet.create({
     container: {
         padding: 16,
-        backgroundColor: '#014d4e',
+        backgroundColor: '#fbfbfb',
         alignItems: 'center',
     },
     title: {
-        color: UIColors.textLight,
+        color: UIColors.textSecondary,
         fontSize: 20,
         fontWeight: 'bold',
     },

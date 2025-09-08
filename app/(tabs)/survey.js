@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, Text, Button, StyleSheet } from 'react-native';
-import {getQuestions} from "../../services/api";
+import { ScrollView, View, Text, StyleSheet, Alert } from 'react-native';
+import { getQuestions } from "../../services/api";
 import SectionHeader from "../../components/SectionHeader";
 import SurveyMatrixQuestion from "../../components/SurveyMatrixQuestion";
 import SurveyHeaderForm from "../../components/SurveyHeaderForm";
 import SurveyFooter from "../../components/SurveyFooter";
-import { useColorScheme } from 'react-native';
+import UIColors from "../../constants/UIColors";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 export default function SurveyScreen() {
     const [form, setForm] = useState({
@@ -18,10 +19,6 @@ export default function SurveyScreen() {
 
     const [questions, setQuestions] = useState([]);
     const [answers, setAnswers] = useState({});
-
-    const colorScheme = useColorScheme();
-    const isDark = colorScheme === 'dark';
-
 
     useEffect(() => {
         getQuestions()
@@ -45,18 +42,17 @@ export default function SurveyScreen() {
         const unanswered = questions.filter((q) => !answers[q.question_id]);
 
         if (missingFields.length > 0) {
-            alert('Please fill in all personal information fields.');
+            Alert.alert('Missing Info', 'Please fill in all personal information fields.');
             return;
         }
 
         if (unanswered.length > 0) {
-            alert(`Please answer all required questions (${unanswered.length} missing).`);
+            Alert.alert("Incomplete Survey", `Please answer all required questions (${unanswered.length} missing).`);
             return;
         }
 
-        // If everything is valid:
-        console.log('✅ Submitted:', { form, answers });
-        alert('Survey submitted successfully!');
+        console.log(' Submitted:', { form, answers });
+        Alert.alert("Success", "Survey submitted successfully!");
     };
 
     const renderQuestionsInSection = (range, title) => {
@@ -94,8 +90,11 @@ export default function SurveyScreen() {
                 {renderQuestionsInSection([6, 8], 'Timeliness and On-Time Delivery')}
                 {renderQuestionsInSection([9, 12], 'Communication and Responsiveness')}
 
+                {/* Submit Button */}
                 <View style={{ marginTop: 20 }}>
-                    <Button title="Submit Survey" onPress={handleSubmit} />
+                    <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+                        <Text style={styles.submitButtonText}>Submit Survey</Text>
+                    </TouchableOpacity>
                 </View>
 
                 <SurveyFooter />
@@ -108,18 +107,31 @@ const styles = StyleSheet.create({
     scroll: {
         paddingVertical: 30,
         alignItems: 'center',
-        backgroundColor: '#f2f2f2',
+        backgroundColor: UIColors.background,
     },
     formContainer: {
         width: '100%',
         maxWidth: 600,
-        backgroundColor: '#fff',
+        backgroundColor: UIColors.surface,
         padding: 20,
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: UIColors.border,
         shadowColor: '#000',
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.06,
         shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 6,
-        elevation: 4,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    submitButton: {
+        backgroundColor: UIColors.primary,
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    submitButtonText: {
+        color: UIColors.textLight,
+        fontSize: 16,
+        fontWeight: '600',
     },
 });

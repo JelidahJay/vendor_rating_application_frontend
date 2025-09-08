@@ -13,7 +13,7 @@ export default function Footer() {
 const styles = StyleSheet.create({
     container: {
         padding: 10,
-        backgroundColor: '#fff',
+        backgroundColor: '#fbfbfb',
         alignItems: 'center',
     },
     text: {
