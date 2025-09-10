@@ -11,6 +11,7 @@ import {
 import CustomModalForm from '../../components/CustomModalForm';
 import UIColors from '../../constants/UIColors';
 import {CopyButton} from "../../components/ActionButtons";
+import Swal from "sweetalert2";
 
 export default function SurveyScreen() {
     const [modalVisible, setModalVisible] = useState(false);
@@ -78,11 +79,29 @@ export default function SurveyScreen() {
     const handleAssign = async () => {
         // ---- basic validation ----
         if (!formData.vendor_id) {
-            Platform.OS === 'web' ? window.alert('Please select a vendor.') : Alert.alert('Validation', 'Please select a vendor.');
+            if (Platform.OS === "web") {
+                await Swal.fire({
+                    icon: "warning",
+                    title: "Validation",
+                    text: "Please select a vendor.",
+                    confirmButtonText: "OK",
+                });
+            } else {
+                Alert.alert("Validation", "Please select a vendor.");
+            }
             return;
         }
         if (!formData.user_ids || formData.user_ids.length === 0) {
-            Platform.OS === 'web' ? window.alert('Please select at least one user.') : Alert.alert('Validation', 'Please select at least one user.');
+            if (Platform.OS === "web") {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Validation",
+                    text: "Please select at least one user.",
+                    confirmButtonText: "OK",
+                });
+            } else {
+                Alert.alert("Validation", "Please select at least one user.");
+            }
             return;
         }
 
@@ -125,13 +144,27 @@ export default function SurveyScreen() {
             // refresh lists
             await Promise.all([fetchGroupedSurveyData(), fetchPending()]);
 
-            Platform.OS === 'web' ? window.alert('Surveys assigned successfully.') : Alert.alert('Success', 'Surveys assigned successfully.');
+            Platform.OS === 'web'
+                ? Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Surveys assigned successfully.',
+                    confirmButtonText: 'OK',
+                })
+                : Alert.alert('Success', 'Surveys assigned successfully.');
         } catch (error) {
-            console.error('❌ Error assigning surveys:', error);
-            Platform.OS === 'web' ? window.alert('Failed to assign surveys.') : Alert.alert('Error', 'Failed to assign surveys.');
+            Platform.OS === 'web'
+                ? Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to assign surveys.',
+                    confirmButtonText: 'OK',
+                })
+                : Alert.alert('Error', 'Failed to assign surveys.');
         } finally {
             setSubmitting(false);
         }
+
     };
 
     // build options with name + service

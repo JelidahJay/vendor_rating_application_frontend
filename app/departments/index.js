@@ -4,6 +4,7 @@ import { getDepartments, createDepartment, updateDepartment, deleteDepartment } 
 import CustomModalForm from '../../components/CustomModalForm';
 import UIColors from '../../constants/UIColors';
 import {ActionGroup, DeleteButton, EditButton, ViewButton} from "../../components/ActionButtons";
+import Swal from "sweetalert2";
 
 export default function DepartmentScreen() {
     const [departments, setDepartments] = useState([]);
@@ -43,10 +44,19 @@ export default function DepartmentScreen() {
     const handleSubmit = async () => {
         console.log("handleSubmit triggered");
 
-        const action = editingDept ? 'edit' : 'create';
+        const action = editingDept ? "edit" : "create";
         const message = `Are you sure you want to ${action} this department?\n\nName: ${formData.name}`;
 
-        const confirmed = Platform.OS === 'web' ? window.confirm(message) : true;
+        let confirmed = Platform.OS === "web"
+            ? (await Swal.fire({
+                icon: "question",
+                title: "Are you sure?",
+                text: message,
+                showCancelButton: true,
+                confirmButtonText: "Yes",
+                cancelButtonText: "Cancel",
+            })).isConfirmed
+            : true;
 
         if (confirmed) {
             try {
@@ -57,15 +67,36 @@ export default function DepartmentScreen() {
                     console.log("Calling createDepartment...");
                     await createDepartment(formData);
                 }
+
                 setModalVisible(false);
                 console.log("Department saved successfully, refreshing...");
                 fetchDepartments();
+
+                // ✅ Success feedback
+                if (Platform.OS === "web") {
+                    await Swal.fire({
+                        toast: true,
+                        position: "top-end",
+                        icon: "success",
+                        title: `Department successfully ${action === "create" ? "added" : "updated"}!`,
+                        showConfirmButton: false,
+                        timer: 3000,
+                    });
+                } else {
+                    Alert.alert("Success", `Department successfully ${action === "create" ? "added" : "updated"}!`);
+                }
+
             } catch (error) {
                 console.error(`Error trying to ${action} department:`, error);
-                if (Platform.OS !== 'web') {
-                    Alert.alert('Error', `Failed to ${action} department.`);
+                if (Platform.OS !== "web") {
+                    Alert.alert("Error", `Failed to ${action} department.`);
                 } else {
-                    window.alert(`Failed to ${action} department.`);
+                    await Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: `Failed to ${action} department.`,
+                        confirmButtonText: "OK",
+                    });
                 }
             }
         }

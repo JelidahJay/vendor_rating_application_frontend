@@ -7,6 +7,7 @@ import CustomModalForm from '../../components/CustomModalForm';
 import UIColors from '../../constants/UIColors';
 import { Feather } from '@expo/vector-icons';
 import { ActionGroup, ViewButton, EditButton, DeleteButton } from '@/components/ActionButtons';
+import Swal from "sweetalert2";
 
 export default function UsersScreen() {
     const [users, setUsers] = useState([]);
@@ -76,9 +77,17 @@ export default function UsersScreen() {
     };
 
     const handleSubmit = async () => {
-        const action = editingUser ? 'edit' : 'create';
-        const confirmed = Platform.OS === 'web'
-            ? window.confirm(`Are you sure you want to ${action} this user?`)
+        const action = editingUser ? "edit" : "create";
+
+        let confirmed = Platform.OS === "web"
+            ? (await Swal.fire({
+                icon: "question",
+                title: "Are you sure?",
+                text: `Are you sure you want to ${action} this user?`,
+                showCancelButton: true,
+                confirmButtonText: "Yes",
+                cancelButtonText: "Cancel",
+            })).isConfirmed
             : true;
 
         if (!confirmed) return;
@@ -90,27 +99,53 @@ export default function UsersScreen() {
                 await createUser(formData);
             }
             setModalVisible(false);
-            fetchUsers();
+            await fetchUsers();
         } catch (error) {
             console.error(`Error trying to ${action} user:`, error);
-            if (Platform.OS !== 'web') {
-                Alert.alert('Error', `Failed to ${action} user.`);
+            if (Platform.OS !== "web") {
+                Alert.alert("Error", `Failed to ${action} user.`);
             } else {
-                window.alert(`Failed to ${action} user.`);
+                await Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: `Failed to ${action} user.`,
+                    confirmButtonText: "OK",
+                });
             }
         }
     };
 
+
     const handleDelete = async (userId) => {
-        if (Platform.OS === 'web') {
-            const confirmed = window.confirm("Are you sure you want to delete this user?");
-            if (!confirmed) return;
+        if (Platform.OS === "web") {
+            const result = await Swal.fire({
+                icon: "warning",
+                title: "Are you sure?",
+                text: "Are you sure you want to delete this user?",
+                showCancelButton: true,
+                confirmButtonText: "Yes, delete",
+                cancelButtonText: "Cancel",
+            });
+
+            if (!result.isConfirmed) return;
+
             try {
                 await deleteUser(userId);
                 fetchUsers();
+                Swal.fire({
+                    icon: "success",
+                    title: "Deleted!",
+                    text: "User has been deleted successfully.",
+                    confirmButtonText: "OK",
+                });
             } catch (error) {
                 console.error("Delete failed:", error);
-                window.alert("Failed to delete user.");
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Failed to delete user.",
+                    confirmButtonText: "OK",
+                });
             }
         } else {
             Alert.alert("Confirm Delete", "Are you sure you want to delete this user?", [

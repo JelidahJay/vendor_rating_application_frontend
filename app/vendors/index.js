@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import VendorSurveyDetailsModal from "../../components/VendorSurveyDetailsModal";
 import UIColors from "../../constants/UIColors";
 import {Feather} from "@expo/vector-icons";
+import Swal from "sweetalert2";
 
 export default function VendorScreen() {
     const [vendors, setVendors] = useState([]);
@@ -68,10 +69,19 @@ export default function VendorScreen() {
     const handleSubmit = async () => {
         console.log("handleSubmit triggered");
 
-        const action = editingVendor ? 'edit' : 'create';
+        const action = editingVendor ? "edit" : "create";
         const message = `Are you sure you want to ${action} this vendor?\n\nName: ${formData.name}\nProduct/Service: ${formData.product_service}`;
 
-        const confirmed = Platform.OS === 'web' ? window.confirm(message) : true;
+        let confirmed = Platform.OS === "web"
+            ? (await Swal.fire({
+                icon: "question",
+                title: "Are you sure?",
+                text: message,
+                showCancelButton: true,
+                confirmButtonText: "Yes",
+                cancelButtonText: "Cancel",
+            })).isConfirmed
+            : true;
 
         if (confirmed) {
             try {
@@ -82,15 +92,36 @@ export default function VendorScreen() {
                     console.log("Calling createVendor...");
                     await createVendor(formData);
                 }
+
                 setModalVisible(false);
                 console.log("Vendor saved successfully, refreshing...");
                 fetchVendors();
+
+                // ✅ success feedback
+                if (Platform.OS === "web") {
+                    Swal.fire({
+                        toast: true,
+                        position: "top-end",
+                        icon: "success",
+                        title: `Vendor successfully ${action === "create" ? "added" : "updated"}!`,
+                        showConfirmButton: false,
+                        timer: 3000,
+                    });
+                } else {
+                    Alert.alert("Success", `Vendor successfully ${action === "create" ? "added" : "updated"}!`);
+                }
+
             } catch (error) {
                 console.error(`Error trying to ${action} vendor:`, error);
-                if (Platform.OS !== 'web') {
-                    Alert.alert('Error', `Failed to ${action} vendor.`);
+                if (Platform.OS !== "web") {
+                    Alert.alert("Error", `Failed to ${action} vendor.`);
                 } else {
-                    window.alert(`Failed to ${action} vendor.`);
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: `Failed to ${action} vendor.`,
+                        confirmButtonText: "OK",
+                    });
                 }
             }
         }
@@ -98,11 +129,19 @@ export default function VendorScreen() {
 
     const handleDelete = async (vendorId) => {
         console.log("Delete requested for vendor:", vendorId);
-        const vendor = vendors.find(v => v.vendor_id === vendorId);
+        const vendor = vendors.find((v) => v.vendor_id === vendorId);
         const message = `Are you sure you want to delete this vendor?\n\nName: ${vendor?.name}\nProduct/Service: ${vendor?.product_service}`;
 
-        if (Platform.OS === 'web') {
-            const confirmed = window.confirm(message);
+        if (Platform.OS === "web") {
+            const confirmed = (await Swal.fire({
+                icon: "warning",
+                title: "Confirm Delete",
+                text: message,
+                showCancelButton: true,
+                confirmButtonText: "Delete",
+                cancelButtonText: "Cancel",
+            })).isConfirmed;
+
             if (!confirmed) return;
 
             try {
@@ -110,9 +149,23 @@ export default function VendorScreen() {
                 await deleteVendor(vendorId);
                 console.log("Vendor deleted, fetching updated list...");
                 fetchVendors();
+
+                Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: "Vendor deleted successfully!",
+                    showConfirmButton: false,
+                    timer: 3000,
+                });
             } catch (error) {
                 console.error("Delete failed:", error);
-                window.alert("Failed to delete vendor.");
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: "Failed to delete vendor.",
+                    confirmButtonText: "OK",
+                });
             }
         } else {
             Alert.alert("Confirm Delete", message, [
@@ -126,6 +179,7 @@ export default function VendorScreen() {
                             await deleteVendor(vendorId);
                             console.log("Vendor deleted, fetching updated list...");
                             fetchVendors();
+                            Alert.alert("Success", "Vendor deleted successfully!");
                         } catch (error) {
                             console.error("Delete failed:", error);
                             Alert.alert("Error", "Failed to delete vendor.");
