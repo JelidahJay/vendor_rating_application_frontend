@@ -98,8 +98,26 @@ export default function UsersScreen() {
             } else {
                 await createUser(formData);
             }
+
             setModalVisible(false);
             await fetchUsers();
+
+            // success feedback
+            if (Platform.OS === "web") {
+                await Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: `User successfully ${action === "create" ? "added" : "updated"}!`,
+                    showConfirmButton: false,
+                    timer: 3000,
+                });
+            } else {
+                Alert.alert(
+                    "Success",
+                    `User successfully ${action === "create" ? "added" : "updated"}!`
+                );
+            }
         } catch (error) {
             console.error(`Error trying to ${action} user:`, error);
             if (Platform.OS !== "web") {

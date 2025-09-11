@@ -125,11 +125,26 @@ export default function SurveyScreen() {
             label: v.name,
             subLabel: v.product_service || '',
         }));
-        const selectedVendor = vendorOptions.find(o => String(o.value) === String(formData.vendor_id));
-        const vendorDisplay = selectedVendor ? `${selectedVendor.label} — ${selectedVendor.subLabel}` : 'Selected Vendor';
+        const selectedVendor = vendorOptions.find(
+            (o) => String(o.value) === String(formData.vendor_id)
+        );
+        const vendorDisplay = selectedVendor
+            ? `${selectedVendor.label} — ${selectedVendor.subLabel}`
+            : "Selected Vendor";
 
         const confirmMessage = `Assign ${vendorDisplay} survey to:\n${userNames}\nValid for ${formData.valid_days} days?`;
-        const confirmed = Platform.OS === 'web' ? window.confirm(confirmMessage) : true;
+
+        let confirmed = Platform.OS === "web"
+            ? (await Swal.fire({
+                icon: "question",
+                title: "Are you sure?",
+                text: confirmMessage,
+                showCancelButton: true,
+                confirmButtonText: "Yes, assign",
+                cancelButtonText: "Cancel",
+            })).isConfirmed
+            : true;
+
         if (!confirmed) return;
 
         try {
@@ -197,7 +212,7 @@ export default function SurveyScreen() {
             name: 'valid_days',
             label: 'Valid For (Days)',
             type: 'input',
-            placeholder: '7',
+            placeholder: 'Enter valid period',
         }
     ];
 
